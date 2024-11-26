@@ -25,32 +25,54 @@ namespace MediaWiki\AutoLinksToAnotherWiki;
 
 use FormatJson;
 use MediaWiki\MediaWikiServices;
+use Linker;
 
 /**
  * Methods to fetch the list of pages that exist in another wiki.
  */
 class AnotherWikiPages {
 	/**
+	 * @var array
+	 * List of all pages found in another wiki: [ 'pageName' => 'url', ... ].
+	 */
+	protected $foundPages;
+
+	/**
 	 * Add links to the existing string $html and return the modified version.
 	 * @param string $html
 	 * @return string
 	 */
 	public function addLinks( $html ) {
-		$this->fetchListUncached();
+		$foundPages = $this->fetchListUncached();
 
-		// TODO
+		$regex = implode( '|', array_map( function ( $pageName ) {
+			return preg_quote( $pageName, '/' );
+		}, array_keys( $foundPages ) ) );
 
-		return $html;
+		// TODO: make the match partially case-insensitive,
+		// for example, the text "Lions are big cats" should get an automatic link to "Big cats",
+		// but make sure to not cause an incorrect link to "Big Cats" if the text says "Big Cats",
+		// as page URLs are case-sensitive (except the first letter of the title).
+
+		$newhtml = preg_replace_callback( "/$regex/", static function ( $matches ) use ( $foundPages ) {
+			$pageName = $matches[0];
+			$url = $foundPages[$pageName];
+
+			return Linker::makeExternalLink( $url, $pageName );
+		}, $html );
+
+		return $newhtml;
 	}
 
 	/**
 	 * Make an API query "what pages do you have" to another wiki.
+	 * @return array The list of found pages: [ "Page name1" => "URL1", ... ]
 	 */
 	public function fetchListUncached() {
 		global $wgAutoLinksToAnotherWikiApiUrl;
 		if ( !$wgAutoLinksToAnotherWikiApiUrl ) {
 			// Not configured.
-			return;
+			return [];
 		}
 
 		$url = wfExpandUrl( $wgAutoLinksToAnotherWikiApiUrl, PROTO_HTTP );
@@ -70,13 +92,13 @@ class AnotherWikiPages {
 
 		$status = $req->execute();
 		if ( !$status->isOK() ) {
-			return;
+			return [];
 		}
 
 		$result = FormatJson::decode( $req->getContent(), true );
 		$rows = $result['query']['pages'] ?? [];
 		if ( !$rows ) {
-			return;
+			return [];
 		}
 
 		$pages = [];
@@ -84,7 +106,7 @@ class AnotherWikiPages {
 			$pages[$row['title']] = $row['fullurl'];
 		}
 
-		// TODO: cache $pages
+		return $pages;
 	}
 
 	// TODO: cache for fetchListUncached()
