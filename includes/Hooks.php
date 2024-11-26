@@ -23,6 +23,7 @@
 
 namespace MediaWiki\AutoLinksToAnotherWiki;
 
+use MediaWiki\Actions\ActionFactory;
 use MediaWiki\Hook\BeforePageDisplayHook;
 use OutputPage;
 use Skin;
@@ -32,6 +33,15 @@ use Title;
  * Hooks of Extension:AutoLinksToAnotherWiki.
  */
 class Hooks implements BeforePageDisplayHook {
+	/** @var ActionFactory */
+	protected $actionFactory;
+
+	/**
+	 * @param ActionFactory $actionFactory
+	 */
+	public function __construct( ActionFactory $actionFactory ) {
+		$this->actionFactory = $actionFactory;
+	}
 
 	/**
 	 * Add "Show images from subcategories" link to category pages.
@@ -46,6 +56,13 @@ class Hooks implements BeforePageDisplayHook {
 		global $wgAutoLinksToAnotherWikiCategoryName;
 		if ( !$wgAutoLinksToAnotherWikiCategoryName ) {
 			// Not configured.
+			return;
+		}
+
+		$actionName = $this->actionFactory->getActionName( $out->getContext() );
+		if ( $actionName !== 'view' ) {
+			// Replacements are only applied when viewing an article,
+			// so that they wouldn't affect elements like <textarea> for editing/previewing, etc.
 			return;
 		}
 

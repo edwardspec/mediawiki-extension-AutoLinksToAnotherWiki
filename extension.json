@@ -15,7 +15,10 @@
 	},
 	"HookHandlers": {
 		"main": {
-			"class": "MediaWiki\\AutoLinksToAnotherWiki\\Hooks"
+			"class": "MediaWiki\\AutoLinksToAnotherWiki\\Hooks",
+			"services": [
+				"ActionFactory"
+			]
 		}
 	},
 	"Hooks": {
