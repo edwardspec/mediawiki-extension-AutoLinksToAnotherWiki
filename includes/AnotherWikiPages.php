@@ -32,6 +32,7 @@ use MediaWiki\MediaWikiServices;
 class AnotherWikiPages {
 	/**
 	 * Add links to the existing string $html and return the modified version.
+	 * @param string $html
 	 * @return string
 	 */
 	public function addLinks( $html ) {
@@ -60,6 +61,7 @@ class AnotherWikiPages {
 			// It's possible to make do with a shorter query (list=allpages) without the generator,
 			// but that would require 1 more HTTP query to discover the ArticlePath for the URLs.
 			'generator' => 'allpages',
+			'gaplimit' => 5000,
 			'prop' => 'info',
 			'inprop' => 'url'
 		] );
