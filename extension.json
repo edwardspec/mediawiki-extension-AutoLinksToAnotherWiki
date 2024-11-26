@@ -10,6 +10,7 @@
 	},
 	"type": "other",
 	"AutoloadClasses": {
+		"MediaWiki\\AutoLinksToAnotherWiki\\AnotherWikiPages": "includes/AnotherWikiPages.php",
 		"MediaWiki\\AutoLinksToAnotherWiki\\Hooks": "includes/Hooks.php"
 	},
 	"HookHandlers": {

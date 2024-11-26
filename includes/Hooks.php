@@ -39,13 +39,14 @@ class Hooks implements BeforePageDisplayHook {
 	 * @param Skin $skin
 	 * @return void
 	 */
-	public function onBeforePageDisplay( $out, $skin ) {
+	public function onBeforePageDisplay( $out, $skin ): void {
 		// We are not using OutputPageBeforeHTML hook, because we need getCategories(),
 		// and some of categories may be added after OutputPageBeforeHTML has already been called.
 
-		global $wgAutoLinksToAnotherWikiApiUrl,
-			$wgAutoLinksToAnotherWikiCategoryName;
+		// global $wgAutoLinksToAnotherWikiCategoryName;
 
 		// TODO
+		$awp = new AnotherWikiPages();
+		$awp->fetchListUncached();
 	}
 }
