@@ -84,14 +84,11 @@ class AnotherWikiPages {
 		$result = $this->cache->get( $cacheKey );
 		if ( $result === false ) { /* Not found in the cache */
 			$result = $this->fetchListUncached();
-			if ( !$result ) {
-				// TODO: cache failure to fetch (to avoid sending HTTP queries over and over).
-				// TODO: add a longer duration fallback cache.
-				return [];
-			}
-
-			// 24 hours. TODO: add a way to explicitly clear this cache.
-			$this->cache->set( $cacheKey, $result, 86400 );
+			$this->cache->set( $cacheKey, $result,
+				// Failure to fetch is cached for 5 minutes (to avoid sending HTTP queries over and over).
+				// Successful response is cached for 24 hours.
+				$result === [] ? 300 : 86400
+			);
 		}
 
 		return $result;
