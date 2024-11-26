@@ -24,8 +24,8 @@
 namespace MediaWiki\AutoLinksToAnotherWiki;
 
 use FormatJson;
-use MediaWiki\MediaWikiServices;
 use Linker;
+use MediaWiki\MediaWikiServices;
 use ObjectCache;
 
 /**
@@ -40,27 +40,29 @@ class AnotherWikiPages {
 	}
 
 	/**
-	 * @var array
-	 * List of all pages found in another wiki: [ 'pageName' => 'url', ... ].
-	 */
-	protected $foundPages;
-
-	/**
 	 * Add links to the existing string $html and return the modified version.
 	 * @param string $html
 	 * @return string
 	 */
 	public function addLinks( $html ) {
 		$foundPages = $this->fetchList();
+		if ( !$foundPages ) {
+			// No replacements needed.
+			return $html;
+		}
 
-		$regex = implode( '|', array_map( function ( $pageName ) {
+		$contentLanguage = MediaWikiServices::getInstance()->getContentLanguage();
+
+		foreach ( array_keys( $foundPages ) as $pageName ) {
+			// Canonical page names start with an uppercase letter,
+			// but we must also match it if it starts with a lowercase letter.
+			$lcfirstPageName = $contentLanguage->lcfirst( $pageName );
+			$foundPages[$lcfirstPageName] = $foundPages[$pageName];
+		}
+
+		$regex = implode( '|', array_map( static function ( $pageName ) {
 			return preg_quote( $pageName, '/' );
 		}, array_keys( $foundPages ) ) );
-
-		// TODO: make the match partially case-insensitive,
-		// for example, the text "Lions are big cats" should get an automatic link to "Big cats",
-		// but make sure to not cause an incorrect link to "Big Cats" if the text says "Big Cats",
-		// as page URLs are case-sensitive (except the first letter of the title).
 
 		$newhtml = preg_replace_callback( "/$regex/", static function ( $matches ) use ( $foundPages ) {
 			$pageName = $matches[0];
