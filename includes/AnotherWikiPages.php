@@ -30,6 +30,17 @@ use MediaWiki\MediaWikiServices;
  * Methods to fetch the list of pages that exist in another wiki.
  */
 class AnotherWikiPages {
+	/**
+	 * Add links to the existing string $html and return the modified version.
+	 * @return string
+	 */
+	public function addLinks( $html ) {
+		$this->fetchListUncached();
+
+		// TODO
+
+		return $html;
+	}
 
 	/**
 	 * Make an API query "what pages do you have" to another wiki.
@@ -76,5 +87,4 @@ class AnotherWikiPages {
 
 	// TODO: cache for fetchListUncached()
 	// TODO: longer duration fallback cache, throttle attempts to send HTTP query if they are failing.
-	// TODO: getRegex(), etc.
 }

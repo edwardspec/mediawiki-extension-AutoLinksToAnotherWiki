@@ -26,6 +26,7 @@ namespace MediaWiki\AutoLinksToAnotherWiki;
 use MediaWiki\Hook\BeforePageDisplayHook;
 use OutputPage;
 use Skin;
+use Title;
 
 /**
  * Hooks of Extension:AutoLinksToAnotherWiki.
@@ -42,11 +43,29 @@ class Hooks implements BeforePageDisplayHook {
 	public function onBeforePageDisplay( $out, $skin ): void {
 		// We are not using OutputPageBeforeHTML hook, because we need getCategories(),
 		// and some of categories may be added after OutputPageBeforeHTML has already been called.
+		global $wgAutoLinksToAnotherWikiCategoryName;
+		if ( !$wgAutoLinksToAnotherWikiCategoryName ) {
+			// Not configured.
+			return;
+		}
 
-		// global $wgAutoLinksToAnotherWikiCategoryName;
+		// Normalize the category name.
+		$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $wgAutoLinksToAnotherWikiCategoryName );
+		$categoryName = $categoryTitle->getText();
 
-		// TODO
+		if ( !in_array( $categoryName, $out->getCategories() ) ) {
+			// This page is not in the configured category, so we don't need to add links to it.
+			return;
+		}
+
+		$html = $out->getHTML();
+
 		$awp = new AnotherWikiPages();
-		$awp->fetchListUncached();
+		$newhtml = $awp->addLinks( $html );
+
+		if ( $html !== $newhtml ) {
+			$out->clearHTML();
+			$out->addHTML( $newhtml );
+		}
 	}
 }
