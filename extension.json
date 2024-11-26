@@ -1,0 +1,39 @@
+{
+	"name": "AutoLinksToAnotherWiki",
+	"version": "0.0.1",
+	"author": "Edward Chernenko",
+	"url": "https://www.mediawiki.org/wiki/Extension:AutoLinksToAnotherWiki",
+	"descriptionmsg": "autolinkstoanotherwiki-desc",
+	"license-name": "GPL-2.0+",
+	"requires": {
+		"MediaWiki": ">= 1.39.0"
+	},
+	"type": "other",
+	"AutoloadClasses": {
+		"MediaWiki\\AutoLinksToAnotherWiki\\Hooks": "includes/Hooks.php"
+	},
+	"HookHandlers": {
+		"main": {
+			"class": "MediaWiki\\AutoLinksToAnotherWiki\\Hooks"
+		}
+	},
+	"Hooks": {
+		"BeforePageDisplay": "main"
+	},
+	"MessagesDirs": {
+		"AutoLinksToAnotherWiki": [
+			"i18n"
+		]
+	},
+	"config": {
+		"AutoLinksToAnotherWikiApiUrl": {
+			"value": "",
+			"description": "Absolute URL of /api.php on another wiki."
+		},
+		"AutoLinksToAnotherWikiCategoryName": {
+			"value": "AutoLinks",
+			"description": "Only the pages in this category will have the links automatically added into them."
+		}
+	},
+	"manifest_version": 2
+}

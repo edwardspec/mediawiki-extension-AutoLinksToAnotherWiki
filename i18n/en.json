@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Edward Chernenko"
+		]
+	},
+
+	"autolinkstoanotherwiki-desc": "Automatically adds links to another wiki into some articles."
+}
