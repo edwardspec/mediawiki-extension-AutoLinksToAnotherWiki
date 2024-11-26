@@ -75,14 +75,12 @@ class Hooks implements BeforePageDisplayHook {
 			return;
 		}
 
-		$html = $out->getHTML();
-
 		$awp = new AnotherWikiPages();
-		$newhtml = $awp->addLinks( $html );
 
-		if ( $html !== $newhtml ) {
+		$html = $out->getHTML();
+		if ( $awp->addLinks( $html ) ) {
 			$out->clearHTML();
-			$out->addHTML( $newhtml );
+			$out->addHTML( $html );
 		}
 	}
 }

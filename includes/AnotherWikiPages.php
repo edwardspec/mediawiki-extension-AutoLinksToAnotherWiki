@@ -23,6 +23,7 @@
 
 namespace MediaWiki\AutoLinksToAnotherWiki;
 
+use BagOStuff;
 use FormatJson;
 use Linker;
 use MediaWiki\MediaWikiServices;
@@ -40,15 +41,15 @@ class AnotherWikiPages {
 	}
 
 	/**
-	 * Add links to the existing string $html and return the modified version.
-	 * @param string $html
-	 * @return string
+	 * Add links to the string $html.
+	 * @param string &$html
+	 * @return bool True if at least 1 replacement was made, false otherwise.
 	 */
-	public function addLinks( $html ) {
+	public function addLinks( &$html ) {
 		$foundPages = $this->fetchList();
 		if ( !$foundPages ) {
 			// No replacements needed.
-			return $html;
+			return false;
 		}
 
 		$contentLanguage = MediaWikiServices::getInstance()->getContentLanguage();
@@ -64,14 +65,14 @@ class AnotherWikiPages {
 			return preg_quote( $pageName, '/' );
 		}, array_keys( $foundPages ) ) );
 
-		$newhtml = preg_replace_callback( "/$regex/", static function ( $matches ) use ( $foundPages ) {
+		$html = preg_replace_callback( "/$regex/", static function ( $matches ) use ( $foundPages ) {
 			$pageName = $matches[0];
 			$url = $foundPages[$pageName];
 
 			return Linker::makeExternalLink( $url, $pageName );
-		}, $html );
+		}, $html, -1, $count );
 
-		return $newhtml;
+		return $count > 0;
 	}
 
 	/**
