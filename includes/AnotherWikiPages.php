@@ -26,11 +26,19 @@ namespace MediaWiki\AutoLinksToAnotherWiki;
 use FormatJson;
 use MediaWiki\MediaWikiServices;
 use Linker;
+use ObjectCache;
 
 /**
  * Methods to fetch the list of pages that exist in another wiki.
  */
 class AnotherWikiPages {
+	/** @var BagOStuff */
+	protected $cache;
+
+	public function __construct() {
+		$this->cache = ObjectCache::getLocalClusterInstance();
+	}
+
 	/**
 	 * @var array
 	 * List of all pages found in another wiki: [ 'pageName' => 'url', ... ].
@@ -43,7 +51,7 @@ class AnotherWikiPages {
 	 * @return string
 	 */
 	public function addLinks( $html ) {
-		$foundPages = $this->fetchListUncached();
+		$foundPages = $this->fetchList();
 
 		$regex = implode( '|', array_map( function ( $pageName ) {
 			return preg_quote( $pageName, '/' );
@@ -67,6 +75,37 @@ class AnotherWikiPages {
 	/**
 	 * Make an API query "what pages do you have" to another wiki.
 	 * @return array The list of found pages: [ "Page name1" => "URL1", ... ]
+	 */
+	protected function fetchList() {
+		$cacheKey = $this->getCacheKey();
+
+		$result = $this->cache->get( $cacheKey );
+		if ( $result === false ) { /* Not found in the cache */
+			$result = $this->fetchListUncached();
+			if ( !$result ) {
+				// TODO: cache failure to fetch (to avoid sending HTTP queries over and over).
+				// TODO: add a longer duration fallback cache.
+				return [];
+			}
+
+			// 24 hours. TODO: add a way to explicitly clear this cache.
+			$this->cache->set( $cacheKey, $result, 86400 );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Returns memcached key used by fetchList().
+	 * @return string
+	 */
+	protected function getCacheKey() {
+		return $this->cache->makeKey( 'anotherwikipages-list' );
+	}
+
+	/**
+	 * Uncached version of fetchList(). Shouldn't be used outside of fetchList().
+	 * @return array
 	 */
 	public function fetchListUncached() {
 		global $wgAutoLinksToAnotherWikiApiUrl;
@@ -108,7 +147,4 @@ class AnotherWikiPages {
 
 		return $pages;
 	}
-
-	// TODO: cache for fetchListUncached()
-	// TODO: longer duration fallback cache, throttle attempts to send HTTP query if they are failing.
 }
