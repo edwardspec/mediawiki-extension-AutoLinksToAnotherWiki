@@ -23,6 +23,7 @@
 
 namespace MediaWiki\AutoLinksToAnotherWiki;
 
+use Config;
 use MediaWiki\Actions\ActionFactory;
 use MediaWiki\Hook\BeforePageDisplayHook;
 use OutputPage;
@@ -33,6 +34,9 @@ use Title;
  * Hooks of Extension:AutoLinksToAnotherWiki.
  */
 class Hooks implements BeforePageDisplayHook {
+	/** @var Config */
+	protected $config;
+
 	/** @var AnotherWikiPages */
 	protected $awp;
 
@@ -40,10 +44,16 @@ class Hooks implements BeforePageDisplayHook {
 	protected $actionFactory;
 
 	/**
+	 * @param Config $config
 	 * @param AnotherWikiPages $awp
 	 * @param ActionFactory $actionFactory
 	 */
-	public function __construct( AnotherWikiPages $awp, ActionFactory $actionFactory ) {
+	public function __construct(
+		Config $config,
+		AnotherWikiPages $awp,
+		ActionFactory $actionFactory
+	) {
+		$this->config = $config;
 		$this->awp = $awp;
 		$this->actionFactory = $actionFactory;
 	}
@@ -58,8 +68,8 @@ class Hooks implements BeforePageDisplayHook {
 	public function onBeforePageDisplay( $out, $skin ): void {
 		// We are not using OutputPageBeforeHTML hook, because we need getCategories(),
 		// and some of categories may be added after OutputPageBeforeHTML has already been called.
-		global $wgAutoLinksToAnotherWikiCategoryName;
-		if ( !$wgAutoLinksToAnotherWikiCategoryName ) {
+		$categoryName = $this->config->get( 'AutoLinksToAnotherWikiCategoryName' );
+		if ( !$categoryName ) {
 			// Not configured.
 			return;
 		}
@@ -72,7 +82,7 @@ class Hooks implements BeforePageDisplayHook {
 		}
 
 		// Normalize the category name.
-		$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $wgAutoLinksToAnotherWikiCategoryName );
+		$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $categoryName );
 		$categoryName = $categoryTitle->getText();
 
 		if ( !in_array( $categoryName, $out->getCategories() ) ) {

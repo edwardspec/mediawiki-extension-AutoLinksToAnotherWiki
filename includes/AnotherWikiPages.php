@@ -27,12 +27,16 @@ use BagOStuff;
 use FormatJson;
 use Language;
 use Linker;
+use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Http\HttpRequestFactory;
 
 /**
  * Methods to fetch the list of pages that exist in another wiki.
  */
 class AnotherWikiPages {
+	/** @var ServiceOptions */
+	protected $options;
+
 	/** @var BagOStuff */
 	protected $cache;
 
@@ -42,16 +46,23 @@ class AnotherWikiPages {
 	/** @var HttpRequestFactory */
 	protected $httpRequestFactory;
 
+	public const CONSTRUCTOR_OPTIONS = [
+		'AutoLinksToAnotherWikiApiUrl'
+	];
+
 	/**
+	 * @param ServiceOptions $options
 	 * @param BagOStuff $cache
 	 * @param Language $contentLanguage
 	 * @param HttpRequestFactory $httpRequestFactory
 	 */
 	public function __construct(
+		ServiceOptions $options,
 		BagOStuff $cache,
 		Language $contentLanguage,
 		HttpRequestFactory $httpRequestFactory
 	) {
+		$this->options = $options;
 		$this->cache = $cache;
 		$this->contentLanguage = $contentLanguage;
 		$this->httpRequestFactory = $httpRequestFactory;
@@ -123,13 +134,13 @@ class AnotherWikiPages {
 	 * @return array
 	 */
 	public function fetchListUncached() {
-		global $wgAutoLinksToAnotherWikiApiUrl;
-		if ( !$wgAutoLinksToAnotherWikiApiUrl ) {
+		$apiUrl = $this->options->get( 'AutoLinksToAnotherWikiApiUrl' );
+		if ( !$apiUrl ) {
 			// Not configured.
 			return [];
 		}
 
-		$url = wfExpandUrl( $wgAutoLinksToAnotherWikiApiUrl, PROTO_HTTP );
+		$url = wfExpandUrl( $apiUrl, PROTO_HTTP );
 		$url = wfAppendQuery( $url, [
 			'format' => 'json',
 			'formatversion' => 2,

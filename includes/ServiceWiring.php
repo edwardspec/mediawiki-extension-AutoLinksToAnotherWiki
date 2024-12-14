@@ -26,6 +26,7 @@
 
 namespace MediaWiki\AutoLinksToAnotherWiki;
 
+use MediaWiki\Config\ServiceOptions;
 use MediaWiki\MediaWikiServices;
 use ObjectCache;
 
@@ -35,6 +36,10 @@ return [
 	'AutoLinksToAnotherWiki.AnotherWikiPages' =>
 		static function ( MediaWikiServices $services ): AnotherWikiPages {
 			return new AnotherWikiPages(
+				new ServiceOptions(
+					AnotherWikiPages::CONSTRUCTOR_OPTIONS,
+					$services->getMainConfig()
+				),
 				ObjectCache::getLocalClusterInstance(),
 				$services->getContentLanguage(),
 				$services->getHttpRequestFactory()

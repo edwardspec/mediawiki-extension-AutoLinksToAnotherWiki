@@ -17,6 +17,7 @@
 		"main": {
 			"class": "MediaWiki\\AutoLinksToAnotherWiki\\Hooks",
 			"services": [
+				"MainConfig",
 				"AutoLinksToAnotherWiki.AnotherWikiPages",
 				"ActionFactory"
 			]
@@ -38,6 +39,10 @@
 		"AutoLinksToAnotherWikiCategoryName": {
 			"value": "AutoLinks",
 			"description": "Only the pages in this category will have the links automatically added into them."
+		},
+		"AutoLinksToAnotherWikiMaxTitles": {
+			"value": 1000,
+			"description": "Maximum number of page titles to fetch from another wiki."
 		}
 	},
 	"ServiceWiringFiles": [
