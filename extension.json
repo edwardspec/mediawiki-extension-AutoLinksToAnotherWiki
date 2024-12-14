@@ -42,7 +42,11 @@
 		},
 		"AutoLinksToAnotherWikiMaxTitles": {
 			"value": 1000,
-			"description": "Maximum number of page titles to fetch from another wiki."
+			"description": "Maximum number of page titles (total) to fetch from another wiki."
+		},
+		"AutoLinksToAnotherWikiQueryLimit": {
+			"value": 500,
+			"description": "Maximum number of page titles to fetch with 1 API request to another wiki. (most wikis don't allow values above 500)"
 		}
 	},
 	"ServiceWiringFiles": [

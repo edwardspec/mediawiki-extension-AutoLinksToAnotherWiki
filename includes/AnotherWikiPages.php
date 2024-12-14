@@ -47,7 +47,9 @@ class AnotherWikiPages {
 	protected $httpRequestFactory;
 
 	public const CONSTRUCTOR_OPTIONS = [
-		'AutoLinksToAnotherWikiApiUrl'
+		'AutoLinksToAnotherWikiApiUrl',
+		'AutoLinksToAnotherWikiMaxTitles',
+		'AutoLinksToAnotherWikiQueryLimit'
 	];
 
 	/**
@@ -140,29 +142,43 @@ class AnotherWikiPages {
 			return [];
 		}
 
-		$url = wfExpandUrl( $apiUrl, PROTO_HTTP );
-		$url = wfAppendQuery( $url, [
+		$limit = max( 1, min( 5000, intval( $this->options->get( 'AutoLinksToAnotherWikiQueryLimit' ) ) ) );
+		$maxTitles = max( $limit, $this->options->get( 'AutoLinksToAnotherWikiMaxTitles' ) );
+
+		$query = [
 			'format' => 'json',
 			'formatversion' => 2,
 			'action' => 'query',
 			// It's possible to make do with a shorter query (list=allpages) without the generator,
 			// but that would require 1 more HTTP query to discover the ArticlePath for the URLs.
 			'generator' => 'allpages',
-			'gaplimit' => 5000,
+			'gaplimit' => $limit,
 			'prop' => 'info',
 			'inprop' => 'url'
-		] );
-		$req = $this->httpRequestFactory->create( $url, [], __METHOD__ );
+		];
 
-		$status = $req->execute();
-		if ( !$status->isOK() ) {
-			return [];
-		}
+		$rows = [];
+		while ( count( $rows ) < $maxTitles ) {
+			$url = wfAppendQuery( wfExpandUrl( $apiUrl, PROTO_HTTP ), $query );
+			$req = $this->httpRequestFactory->create( $url, [], __METHOD__ );
 
-		$result = FormatJson::decode( $req->getContent(), true );
-		$rows = $result['query']['pages'] ?? [];
-		if ( !$rows ) {
-			return [];
+			$status = $req->execute();
+			if ( !$status->isOK() ) {
+				break;
+			}
+
+			$result = FormatJson::decode( $req->getContent(), true );
+			$newRows = $result['query']['pages'] ?? [];
+			if ( !$newRows ) {
+				break;
+			}
+			$rows = array_merge( $rows, array_slice( $newRows, 0, $maxTitles - count( $rows ) ) );
+
+			$continueToken = $result['continue']['gapcontinue'] ?? null;
+			if ( !$continueToken ) {
+				break;
+			}
+			$query['gapcontinue'] = $continueToken;
 		}
 
 		$pages = [];
