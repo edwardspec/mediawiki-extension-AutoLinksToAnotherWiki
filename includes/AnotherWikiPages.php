@@ -25,9 +25,9 @@ namespace MediaWiki\AutoLinksToAnotherWiki;
 
 use BagOStuff;
 use FormatJson;
+use Language;
 use Linker;
-use MediaWiki\MediaWikiServices;
-use ObjectCache;
+use MediaWiki\Http\HttpRequestFactory;
 
 /**
  * Methods to fetch the list of pages that exist in another wiki.
@@ -36,8 +36,25 @@ class AnotherWikiPages {
 	/** @var BagOStuff */
 	protected $cache;
 
-	public function __construct() {
-		$this->cache = ObjectCache::getLocalClusterInstance();
+	/** @var Language */
+	protected $contentLanguage;
+
+	/** @var HttpRequestFactory */
+	protected $httpRequestFactory;
+
+	/**
+	 * @param BagOStuff $cache
+	 * @param Language $contentLanguage
+	 * @param HttpRequestFactory $httpRequestFactory
+	 */
+	public function __construct(
+		BagOStuff $cache,
+		Language $contentLanguage,
+		HttpRequestFactory $httpRequestFactory
+	) {
+		$this->cache = $cache;
+		$this->contentLanguage = $contentLanguage;
+		$this->httpRequestFactory = $httpRequestFactory;
 	}
 
 	/**
@@ -52,12 +69,10 @@ class AnotherWikiPages {
 			return false;
 		}
 
-		$contentLanguage = MediaWikiServices::getInstance()->getContentLanguage();
-
 		foreach ( array_keys( $foundPages ) as $pageName ) {
 			// Canonical page names start with an uppercase letter,
 			// but we must also match it if it starts with a lowercase letter.
-			$lcfirstPageName = $contentLanguage->lcfirst( $pageName );
+			$lcfirstPageName = $this->contentLanguage->lcfirst( $pageName );
 			$foundPages[$lcfirstPageName] = $foundPages[$pageName];
 		}
 
@@ -126,8 +141,7 @@ class AnotherWikiPages {
 			'prop' => 'info',
 			'inprop' => 'url'
 		] );
-		$req = MediaWikiServices::getInstance()->getHttpRequestFactory()
-			->create( $url, [], __METHOD__ );
+		$req = $this->httpRequestFactory->create( $url, [], __METHOD__ );
 
 		$status = $req->execute();
 		if ( !$status->isOK() ) {

@@ -17,6 +17,7 @@
 		"main": {
 			"class": "MediaWiki\\AutoLinksToAnotherWiki\\Hooks",
 			"services": [
+				"AutoLinksToAnotherWiki.AnotherWikiPages",
 				"ActionFactory"
 			]
 		}
@@ -39,5 +40,8 @@
 			"description": "Only the pages in this category will have the links automatically added into them."
 		}
 	},
+	"ServiceWiringFiles": [
+		"includes/ServiceWiring.php"
+	],
 	"manifest_version": 2
 }

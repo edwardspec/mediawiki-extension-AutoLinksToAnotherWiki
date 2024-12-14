@@ -33,13 +33,18 @@ use Title;
  * Hooks of Extension:AutoLinksToAnotherWiki.
  */
 class Hooks implements BeforePageDisplayHook {
+	/** @var AnotherWikiPages */
+	protected $awp;
+
 	/** @var ActionFactory */
 	protected $actionFactory;
 
 	/**
+	 * @param AnotherWikiPages $awp
 	 * @param ActionFactory $actionFactory
 	 */
-	public function __construct( ActionFactory $actionFactory ) {
+	public function __construct( AnotherWikiPages $awp, ActionFactory $actionFactory ) {
+		$this->awp = $awp;
 		$this->actionFactory = $actionFactory;
 	}
 
@@ -75,10 +80,8 @@ class Hooks implements BeforePageDisplayHook {
 			return;
 		}
 
-		$awp = new AnotherWikiPages();
-
 		$html = $out->getHTML();
-		if ( $awp->addLinks( $html ) ) {
+		if ( $this->awp->addLinks( $html ) ) {
 			$out->clearHTML();
 			$out->addHTML( $html );
 		}
