@@ -89,18 +89,42 @@ class AnotherWikiPages {
 			$foundPages[$lcfirstPageName] = $foundPages[$pageName];
 		}
 
-		$regex = implode( '|', array_map( static function ( $pageName ) {
-			return preg_quote( $pageName, '/' );
-		}, array_keys( $foundPages ) ) );
+		// FIXME: prevent replacements in edit section links.
 
-		$html = preg_replace_callback( "/$regex/", static function ( $matches ) use ( $foundPages ) {
-			$pageName = $matches[0];
-			$url = $foundPages[$pageName];
+		$markers = [];
+		$markerValues = [];
+		$countTotal = 0;
 
-			return Linker::makeExternalLink( $url, $pageName );
-		}, $html, -1, $count );
+		foreach ( array_chunk( array_keys( $foundPages ), 500 ) as $chunk ) {
+			$regex = implode( '|', array_map( static function ( $pageName ) {
+				return preg_quote( $pageName, '/' );
+			}, $chunk ) );
 
-		return $count > 0;
+			$html = preg_replace_callback( "/\b($regex)\b/", static function ( $matches )
+				use ( $foundPages, &$markers, &$markerValues
+			) {
+				$pageName = $matches[0];
+				$url = $foundPages[$pageName];
+
+				// The purpose of markers is to prevent unwanted replacements inside URLs
+				// that we have just added. First, we replace words with markers,
+				// then we replace markers with URLs.
+				$marker = '{{LINKMARKER' . count( $markers ) . '}}';
+
+				$markers[] = $marker;
+				$markerValues[] = Linker::makeExternalLink( $url, $pageName );
+
+				return $marker;
+			}, $html, -1, $count );
+			$countTotal += $count;
+		}
+
+		if ( $countTotal < 1 ) {
+			return false;
+		}
+
+		$html = str_replace( $markers, $markerValues, $html );
+		return true;
 	}
 
 	/**
