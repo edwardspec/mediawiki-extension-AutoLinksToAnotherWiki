@@ -26,8 +26,8 @@ namespace MediaWiki\AutoLinksToAnotherWiki;
 use Config;
 use MediaWiki\Actions\ActionFactory;
 use MediaWiki\Hook\OutputPageParserOutputHook;
-use ParserOutput;
 use OutputPage;
+use ParserOutput;
 use Title;
 
 /**

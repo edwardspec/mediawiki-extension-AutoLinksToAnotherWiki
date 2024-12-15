@@ -89,32 +89,40 @@ class AnotherWikiPages {
 			$foundPages[$lcfirstPageName] = $foundPages[$pageName];
 		}
 
-		// FIXME: prevent replacements in attributes of HTML tags, etc.
-
+		// The purpose of markers is to prevent unwanted replacements inside URLs
+		// that we have just added. First, we replace words with markers,
+		// then we replace markers with URLs.
 		$markers = [];
 		$markerValues = [];
-		$countTotal = 0;
 
+		// Helper method to create a new marker that will later be replaced with $newValue.
+		$getMarker = static function ( $newValue ) use ( &$markers, &$markerValues ) {
+			$marker = '{{LINKMARKER' . count( $markers ) . '}}';
+
+			$markers[] = $marker;
+			$markerValues[] = $newValue;
+
+			return $marker;
+		};
+
+		// Temporarily hide HTML tags to prevent replacements in their attributes.
+		$html = preg_replace_callback( '/<[^<>]*>/', static function ( $matches ) use ( $getMarker ) {
+			return $getMarker( $matches[0] );
+		}, $html );
+
+		$countTotal = 0;
 		foreach ( array_chunk( array_keys( $foundPages ), 500 ) as $chunk ) {
 			$regex = implode( '|', array_map( static function ( $pageName ) {
 				return preg_quote( $pageName, '/' );
 			}, $chunk ) );
 
 			$html = preg_replace_callback( "/\b($regex)\b/", static function ( $matches )
-				use ( $foundPages, &$markers, &$markerValues
-			) {
+				use ( $foundPages, $getMarker )
+			{
 				$pageName = $matches[0];
 				$url = $foundPages[$pageName];
 
-				// The purpose of markers is to prevent unwanted replacements inside URLs
-				// that we have just added. First, we replace words with markers,
-				// then we replace markers with URLs.
-				$marker = '{{LINKMARKER' . count( $markers ) . '}}';
-
-				$markers[] = $marker;
-				$markerValues[] = Linker::makeExternalLink( $url, $pageName );
-
-				return $marker;
+				return $getMarker( Linker::makeExternalLink( $url, $pageName ) );
 			}, $html, -1, $count );
 			$countTotal += $count;
 		}
