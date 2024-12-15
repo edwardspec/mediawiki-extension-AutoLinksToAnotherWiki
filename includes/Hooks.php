@@ -25,15 +25,15 @@ namespace MediaWiki\AutoLinksToAnotherWiki;
 
 use Config;
 use MediaWiki\Actions\ActionFactory;
-use MediaWiki\Hook\BeforePageDisplayHook;
+use MediaWiki\Hook\OutputPageParserOutputHook;
+use ParserOutput;
 use OutputPage;
-use Skin;
 use Title;
 
 /**
  * Hooks of Extension:AutoLinksToAnotherWiki.
  */
-class Hooks implements BeforePageDisplayHook {
+class Hooks implements OutputPageParserOutputHook {
 	/** @var Config */
 	protected $config;
 
@@ -59,15 +59,18 @@ class Hooks implements BeforePageDisplayHook {
 	}
 
 	/**
-	 * Add "Show images from subcategories" link to category pages.
+	 * Add external links to another wiki to the words that have an article in another wiki.
 	 *
 	 * @param OutputPage $out
-	 * @param Skin $skin
+	 * @param ParserOutput $parserOutput
 	 * @return void
 	 */
-	public function onBeforePageDisplay( $out, $skin ): void {
-		// We are not using OutputPageBeforeHTML hook, because we need getCategories(),
-		// and some of categories may be added after OutputPageBeforeHTML has already been called.
+	public function onOutputPageParserOutput( $out, $parserOutput ): void {
+		if ( !$parserOutput->hasText() ) {
+			// Not needed.
+			return;
+		}
+
 		$categoryName = $this->config->get( 'AutoLinksToAnotherWikiCategoryName' );
 		if ( !$categoryName ) {
 			// Not configured.
@@ -85,15 +88,16 @@ class Hooks implements BeforePageDisplayHook {
 		$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $categoryName );
 		$categoryName = $categoryTitle->getText();
 
+		// FIXME: there is a possibility that getCategories() isn't returning the full list,
+		// because these categories are only added in later invocations of this hook.
 		if ( !in_array( $categoryName, $out->getCategories() ) ) {
 			// This page is not in the configured category, so we don't need to add links to it.
 			return;
 		}
 
-		$html = $out->getHTML();
+		$html = $parserOutput->getRawText();
 		if ( $this->awp->addLinks( $html ) ) {
-			$out->clearHTML();
-			$out->addHTML( $html );
+			$parserOutput->setText( $html );
 		}
 	}
 }

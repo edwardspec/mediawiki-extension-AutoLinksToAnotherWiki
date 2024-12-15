@@ -89,7 +89,7 @@ class AnotherWikiPages {
 			$foundPages[$lcfirstPageName] = $foundPages[$pageName];
 		}
 
-		// FIXME: prevent replacements in edit section links.
+		// FIXME: prevent replacements in attributes of HTML tags, etc.
 
 		$markers = [];
 		$markerValues = [];
