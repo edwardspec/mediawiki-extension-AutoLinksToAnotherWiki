@@ -24,7 +24,7 @@
 		}
 	},
 	"Hooks": {
-		"OutputPageParserOutput": "main"
+		"BeforePageDisplay": "main"
 	},
 	"MessagesDirs": {
 		"AutoLinksToAnotherWiki": [

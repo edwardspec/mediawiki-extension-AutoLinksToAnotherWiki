@@ -25,15 +25,15 @@ namespace MediaWiki\AutoLinksToAnotherWiki;
 
 use Config;
 use MediaWiki\Actions\ActionFactory;
-use MediaWiki\Hook\OutputPageParserOutputHook;
+use MediaWiki\Hook\BeforePageDisplayHook;
 use OutputPage;
-use ParserOutput;
+use Skin;
 use Title;
 
 /**
  * Hooks of Extension:AutoLinksToAnotherWiki.
  */
-class Hooks implements OutputPageParserOutputHook {
+class Hooks implements BeforePageDisplayHook {
 	/** @var Config */
 	protected $config;
 
@@ -62,15 +62,10 @@ class Hooks implements OutputPageParserOutputHook {
 	 * Add external links to another wiki to the words that have an article in another wiki.
 	 *
 	 * @param OutputPage $out
-	 * @param ParserOutput $parserOutput
+	 * @param Skin $skin
 	 * @return void
 	 */
-	public function onOutputPageParserOutput( $out, $parserOutput ): void {
-		if ( !$parserOutput->hasText() ) {
-			// Not needed.
-			return;
-		}
-
+	public function onBeforePageDisplay( $out, $skin ): void {
 		$categoryName = $this->config->get( 'AutoLinksToAnotherWikiCategoryName' );
 		if ( !$categoryName ) {
 			// Not configured.
@@ -88,16 +83,15 @@ class Hooks implements OutputPageParserOutputHook {
 		$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $categoryName );
 		$categoryName = $categoryTitle->getText();
 
-		// FIXME: there is a possibility that getCategories() isn't returning the full list,
-		// because these categories are only added in later invocations of this hook.
 		if ( !in_array( $categoryName, $out->getCategories() ) ) {
 			// This page is not in the configured category, so we don't need to add links to it.
 			return;
 		}
 
-		$html = $parserOutput->getRawText();
+		$html = $out->getHTML();
 		if ( $this->awp->addLinks( $html ) ) {
-			$parserOutput->setText( $html );
+			$out->clearHTML();
+			$out->addHTML( $html );
 		}
 	}
 }
