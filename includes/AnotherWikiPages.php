@@ -106,7 +106,7 @@ class AnotherWikiPages {
 		};
 
 		// Temporarily hide HTML tags to prevent replacements in their attributes.
-		$html = preg_replace_callback( '/<[^<>]*>/', static function ( $matches ) use ( $getMarker ) {
+		$newHtml = preg_replace_callback( '/<[^<>]*>/', static function ( $matches ) use ( $getMarker ) {
 			return $getMarker( $matches[0] );
 		}, $html );
 
@@ -116,14 +116,14 @@ class AnotherWikiPages {
 				return preg_quote( $pageName, '/' );
 			}, $chunk ) );
 
-			$html = preg_replace_callback( "/\b($regex)\b/", static function ( $matches )
+			$newHtml = preg_replace_callback( "/\b($regex)\b/", static function ( $matches )
 				use ( $foundPages, $getMarker )
 			{
 				$pageName = $matches[0];
 				$url = $foundPages[$pageName];
 
 				return $getMarker( Linker::makeExternalLink( $url, $pageName ) );
-			}, $html, -1, $count );
+			}, $newHtml, -1, $count );
 			$countTotal += $count;
 		}
 
@@ -131,7 +131,7 @@ class AnotherWikiPages {
 			return false;
 		}
 
-		$html = str_replace( $markers, $markerValues, $html );
+		$html = str_replace( $markers, $markerValues, $newHtml );
 		return true;
 	}
 
