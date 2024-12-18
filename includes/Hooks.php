@@ -59,6 +59,33 @@ class Hooks implements BeforePageDisplayHook {
 	}
 
 	/**
+	 * Returns true if currently displayed page needs replacements, false otherwise.
+	 * @param OutputPage $out
+	 * @return bool
+	 */
+	protected function pageNeedsReplacements( OutputPage $out ) {
+		if ( in_array(
+			$out->getTitle()->getNamespace(),
+			$this->config->get( 'AutoLinksToAnotherWikiNamespaces' )
+		) ) {
+			return true;
+		}
+
+		$categoryName = $this->config->get( 'AutoLinksToAnotherWikiCategoryName' );
+		if ( $categoryName ) {
+			// Normalize the category name.
+			$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $categoryName );
+			$categoryName = $categoryTitle->getText();
+
+			if ( in_array( $categoryName, $out->getCategories() ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Add external links to another wiki to the words that have an article in another wiki.
 	 *
 	 * @param OutputPage $out
@@ -66,9 +93,8 @@ class Hooks implements BeforePageDisplayHook {
 	 * @return void
 	 */
 	public function onBeforePageDisplay( $out, $skin ): void {
-		$categoryName = $this->config->get( 'AutoLinksToAnotherWikiCategoryName' );
-		if ( !$categoryName ) {
-			// Not configured.
+		if ( !$this->pageNeedsReplacements( $out ) ) {
+			// Not needed on this page.
 			return;
 		}
 
@@ -76,15 +102,6 @@ class Hooks implements BeforePageDisplayHook {
 		if ( $actionName !== 'view' ) {
 			// Replacements are only applied when viewing an article,
 			// so that they wouldn't affect elements like <textarea> for editing/previewing, etc.
-			return;
-		}
-
-		// Normalize the category name.
-		$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $categoryName );
-		$categoryName = $categoryTitle->getText();
-
-		if ( !in_array( $categoryName, $out->getCategories() ) ) {
-			// This page is not in the configured category, so we don't need to add links to it.
 			return;
 		}
 

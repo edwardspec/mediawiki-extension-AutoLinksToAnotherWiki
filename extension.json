@@ -38,7 +38,12 @@
 		},
 		"AutoLinksToAnotherWikiCategoryName": {
 			"value": "AutoLinks",
-			"description": "Only the pages in this category will have the links automatically added into them."
+			"description": "All pages in this category will have the links automatically added into them."
+		},
+
+		"AutoLinksToAnotherWikiNamespaces": {
+			"value": [],
+			"description": "All pages in these namespaces (e.g. [NS_MAIN, NS_FILE]) will have the links automatically added into them."
 		},
 		"AutoLinksToAnotherWikiMaxTitles": {
 			"value": 1000,
