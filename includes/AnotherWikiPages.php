@@ -89,6 +89,12 @@ class AnotherWikiPages {
 			$foundPages[$lcfirstPageName] = $foundPages[$pageName];
 		}
 
+		// Sort by the length of pagename (descending), so that the longest links would be added first
+		// (e.g. "Times Square" should become "[[Times Square]]", not "Times [[Square]]").
+		uksort( $foundPages, static function ( $a, $b ) {
+			return strlen( $b ) - strlen( $a );
+		} );
+
 		// The purpose of markers is to prevent unwanted replacements inside URLs
 		// that we have just added. First, we replace words with markers,
 		// then we replace markers with URLs.
