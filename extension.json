@@ -1,12 +1,12 @@
 {
 	"name": "AutoLinksToAnotherWiki",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"author": "Edward Chernenko",
 	"url": "https://www.mediawiki.org/wiki/Extension:AutoLinksToAnotherWiki",
 	"descriptionmsg": "autolinkstoanotherwiki-desc",
 	"license-name": "GPL-2.0+",
 	"requires": {
-		"MediaWiki": ">= 1.39.0"
+		"MediaWiki": ">= 1.43.0"
 	},
 	"type": "other",
 	"AutoloadClasses": {
