@@ -114,7 +114,7 @@ class AnotherWikiPages {
 		// Temporarily hide HTML tags, links and URLs to prevent replacements in them.
 		$newHtml = $html;
 		foreach ( [
-			'/<a .*?<\/a>/',
+			'/<(a|h[1-6])[ >].*?<\/\1>/',
 			'/<[^<>]*>|http?:[^\s]+/'
 		] as $pattern ) {
 			$newHtml = preg_replace_callback( $pattern, static function ( $matches ) use ( $getMarker ) {
