@@ -111,10 +111,16 @@ class AnotherWikiPages {
 			return $marker;
 		};
 
-		// Temporarily hide HTML tags to prevent replacements in their attributes.
-		$newHtml = preg_replace_callback( '/<[^<>]*>/', static function ( $matches ) use ( $getMarker ) {
-			return $getMarker( $matches[0] );
-		}, $html );
+		// Temporarily hide HTML tags, links and URLs to prevent replacements in them.
+		$newHtml = $html;
+		foreach ( [
+			'/<a .*?<\/a>/',
+			'/<[^<>]*>|http?:[^\s]+/'
+		] as $pattern ) {
+			$newHtml = preg_replace_callback( $pattern, static function ( $matches ) use ( $getMarker ) {
+				return $getMarker( $matches[0] );
+			}, $newHtml );
+		}
 
 		$countTotal = 0;
 		foreach ( array_chunk( array_keys( $foundPages ), 500 ) as $chunk ) {
