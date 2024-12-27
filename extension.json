@@ -40,7 +40,6 @@
 			"value": "AutoLinks",
 			"description": "All pages in this category will have the links automatically added into them."
 		},
-
 		"AutoLinksToAnotherWikiNamespaces": {
 			"value": [],
 			"description": "All pages in these namespaces (e.g. [NS_MAIN, NS_FILE]) will have the links automatically added into them."
@@ -52,6 +51,10 @@
 		"AutoLinksToAnotherWikiQueryLimit": {
 			"value": 500,
 			"description": "Maximum number of page titles to fetch with 1 API request to another wiki. (most wikis don't allow values above 500)"
+		},
+		"AutoLinksToAnotherWikiExcludeLinksTo": {
+			"value": [],
+			"description": "Links to these pages won't be added."
 		}
 	},
 	"ServiceWiringFiles": [

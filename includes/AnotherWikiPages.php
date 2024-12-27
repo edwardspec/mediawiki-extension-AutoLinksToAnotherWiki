@@ -48,6 +48,7 @@ class AnotherWikiPages {
 
 	public const CONSTRUCTOR_OPTIONS = [
 		'AutoLinksToAnotherWikiApiUrl',
+		'AutoLinksToAnotherWikiExcludeLinksTo',
 		'AutoLinksToAnotherWikiMaxTitles',
 		'AutoLinksToAnotherWikiQueryLimit'
 	];
@@ -81,6 +82,12 @@ class AnotherWikiPages {
 			// No replacements needed.
 			return false;
 		}
+
+		// Exclude unwanted links.
+		$foundPages = array_diff_key(
+			$foundPages,
+			array_flip( $this->options->get( 'AutoLinksToAnotherWikiExcludeLinksTo' ) )
+		);
 
 		foreach ( array_keys( $foundPages ) as $pageName ) {
 			// Canonical page names start with an uppercase letter,
