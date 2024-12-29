@@ -11,6 +11,7 @@
 	"type": "other",
 	"AutoloadClasses": {
 		"MediaWiki\\AutoLinksToAnotherWiki\\AnotherWikiPages": "includes/AnotherWikiPages.php",
+		"MediaWiki\\AutoLinksToAnotherWiki\\ReplaceTextInHtml": "includes/ReplaceTextInHtml.php",
 		"MediaWiki\\AutoLinksToAnotherWiki\\Hooks": "includes/Hooks.php"
 	},
 	"HookHandlers": {

@@ -102,55 +102,32 @@ class AnotherWikiPages {
 			return strlen( $b ) - strlen( $a );
 		} );
 
-		// The purpose of markers is to prevent unwanted replacements inside URLs
-		// that we have just added. First, we replace words with markers,
-		// then we replace markers with URLs.
-		$markers = [];
-		$markerValues = [];
+		$callback = static function ( $text, ReplaceTextInHtml $replacer ) use ( $foundPages ) {
+			foreach ( array_chunk( array_keys( $foundPages ), 500 ) as $chunk ) {
+				$regex = implode( '|', array_map( static function ( $pageName ) {
+					return preg_quote( $pageName, '/' );
+				}, $chunk ) );
 
-		// Helper method to create a new marker that will later be replaced with $newValue.
-		$getMarker = static function ( $newValue ) use ( &$markers, &$markerValues ) {
-			$marker = '{{LINKMARKER' . count( $markers ) . '}}';
+				$text = preg_replace_callback( "/\b($regex)\b/", static function ( $matches )
+					use ( $foundPages, $replacer )
+				{
+					$pageName = $matches[0];
+					$url = $foundPages[$pageName];
 
-			$markers[] = $marker;
-			$markerValues[] = $newValue;
-
-			return $marker;
+					return $replacer->getMarker( Linker::makeExternalLink( $url, $pageName ) );
+				}, $text );
+			}
+			return $text;
 		};
 
-		// Temporarily hide HTML tags, links and URLs to prevent replacements in them.
-		$newHtml = $html;
-		foreach ( [
-			'/<(a|h[1-6])[ >].*?<\/\1>/',
-			'/<[^<>]*>|http?:[^\s]+/'
-		] as $pattern ) {
-			$newHtml = preg_replace_callback( $pattern, static function ( $matches ) use ( $getMarker ) {
-				return $getMarker( $matches[0] );
-			}, $newHtml );
-		}
+		$replacer = new ReplaceTextInHtml();
+		$newHtml = $replacer->processHtml( $html, $callback );
 
-		$countTotal = 0;
-		foreach ( array_chunk( array_keys( $foundPages ), 500 ) as $chunk ) {
-			$regex = implode( '|', array_map( static function ( $pageName ) {
-				return preg_quote( $pageName, '/' );
-			}, $chunk ) );
-
-			$newHtml = preg_replace_callback( "/\b($regex)\b/", static function ( $matches )
-				use ( $foundPages, $getMarker )
-			{
-				$pageName = $matches[0];
-				$url = $foundPages[$pageName];
-
-				return $getMarker( Linker::makeExternalLink( $url, $pageName ) );
-			}, $newHtml, -1, $count );
-			$countTotal += $count;
-		}
-
-		if ( $countTotal < 1 ) {
+		if ( $html === $newHtml ) {
 			return false;
 		}
 
-		$html = str_replace( $markers, $markerValues, $newHtml );
+		$html = $newHtml;
 		return true;
 	}
 
