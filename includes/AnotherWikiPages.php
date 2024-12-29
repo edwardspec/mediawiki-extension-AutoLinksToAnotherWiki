@@ -54,6 +54,18 @@ class AnotherWikiPages {
 	];
 
 	/**
+	 * @var string[] List of page names found in another wiki.
+	 * Set during update().
+	 */
+	protected $foundPages = [];
+
+	/**
+	 * @var string Value of ArticlePath in another wiki, e.g. "/wiki/$1".
+	 * Set during update().
+	 */
+	protected $articlePath = '';
+
+	/**
 	 * @param ServiceOptions $options
 	 * @param BagOStuff $cache
 	 * @param Language $contentLanguage
@@ -77,42 +89,41 @@ class AnotherWikiPages {
 	 * @return bool True if at least 1 replacement was made, false otherwise.
 	 */
 	public function addLinks( &$html ) {
-		$foundPages = $this->fetchList();
-		if ( !$foundPages ) {
+		$this->updateList();
+		if ( !$this->foundPages || !$this->articlePath ) {
 			// No replacements needed.
 			return false;
 		}
 
 		// Exclude unwanted links.
-		$foundPages = array_diff_key(
-			$foundPages,
-			array_flip( $this->options->get( 'AutoLinksToAnotherWikiExcludeLinksTo' ) )
+		$foundPages = array_diff(
+			$this->foundPages,
+			$this->options->get( 'AutoLinksToAnotherWikiExcludeLinksTo' )
 		);
 
-		foreach ( array_keys( $foundPages ) as $pageName ) {
+		foreach ( $foundPages as $pageName ) {
 			// Canonical page names start with an uppercase letter,
 			// but we must also match it if it starts with a lowercase letter.
-			$lcfirstPageName = $this->contentLanguage->lcfirst( $pageName );
-			$foundPages[$lcfirstPageName] = $foundPages[$pageName];
+			$foundPages[] = $this->contentLanguage->lcfirst( $pageName );
 		}
 
 		// Sort by the length of pagename (descending), so that the longest links would be added first
 		// (e.g. "Times Square" should become "[[Times Square]]", not "Times [[Square]]").
-		uksort( $foundPages, static function ( $a, $b ) {
+		usort( $foundPages, static function ( $a, $b ) {
 			return strlen( $b ) - strlen( $a );
 		} );
 
-		$callback = static function ( $text, ReplaceTextInHtml $replacer ) use ( $foundPages ) {
-			foreach ( array_chunk( array_keys( $foundPages ), 500 ) as $chunk ) {
+		$callback = function ( $text, ReplaceTextInHtml $replacer ) use ( $foundPages ) {
+			foreach ( array_chunk( $foundPages, 500 ) as $chunk ) {
 				$regex = implode( '|', array_map( static function ( $pageName ) {
 					return preg_quote( $pageName, '/' );
 				}, $chunk ) );
 
-				$text = preg_replace_callback( "/\b($regex)\b/", static function ( $matches )
-					use ( $foundPages, $replacer )
+				$text = preg_replace_callback( "/\b($regex)\b/", function ( $matches )
+					use ( $replacer )
 				{
 					$pageName = $matches[0];
-					$url = $foundPages[$pageName];
+					$url = $this->getUrl( $pageName );
 
 					return $replacer->getMarker( Linker::makeExternalLink( $url, $pageName ) );
 				}, $text );
@@ -132,15 +143,52 @@ class AnotherWikiPages {
 	}
 
 	/**
-	 * Make an API query "what pages do you have" to another wiki.
-	 * @return array The list of found pages: [ "Page name1" => "URL1", ... ]
+	 * Get URL in another wiki by page name.
+	 * @param string $pageName
+	 * @return string
 	 */
-	protected function fetchList() {
-		$cacheKey = $this->getCacheKey();
+	protected function getUrl( $pageName ) {
+		$pageName = $this->contentLanguage->ucfirst( $pageName );
+		return str_replace( '$1', strtr( $pageName, ' ', '_' ), $this->articlePath );
+	}
 
+	/**
+	 * Make an API query to another wiki, return parsed API result.
+	 * @param array $query
+	 * @return mixed|null
+	 *
+	 * @phan-param array<string,mixed> $query
+	 */
+	protected function sendApiQuery( array $query ) {
+		$apiUrl = $this->options->get( 'AutoLinksToAnotherWikiApiUrl' );
+		if ( !$apiUrl ) {
+			// Not configured.
+			return null;
+		}
+
+		$url = wfAppendQuery( wfExpandUrl( $apiUrl, PROTO_HTTPS ), $query );
+		$req = $this->httpRequestFactory->create( $url, [], __METHOD__ );
+
+		$status = $req->execute();
+		if ( !$status->isOK() ) {
+			return null;
+		}
+
+		return FormatJson::decode( $req->getContent(), true );
+	}
+
+	/**
+	 * Update list of articles and ArticlePath of another wiki.
+	 */
+	protected function updateList() {
+		$cacheKey = $this->getCacheKey();
 		$result = $this->cache->get( $cacheKey );
 		if ( $result === false ) { /* Not found in the cache */
-			$result = $this->fetchListUncached();
+			$articlePath = $this->fetchArticlePath();
+			$foundPages = $this->fetchList();
+
+			$result = [ $articlePath, $foundPages ];
+
 			$this->cache->set( $cacheKey, $result,
 				// Failure to fetch is cached for 5 minutes (to avoid sending HTTP queries over and over).
 				// Successful response is cached for 24 hours.
@@ -148,28 +196,48 @@ class AnotherWikiPages {
 			);
 		}
 
-		return $result;
+		[ $this->articlePath, $this->foundPages ] = $result;
 	}
 
 	/**
-	 * Returns memcached key used by fetchList().
+	 * Returns memcached key used by updateList().
 	 * @return string
 	 */
 	protected function getCacheKey() {
-		return $this->cache->makeKey( 'anotherwikipages-list' );
+		return $this->cache->makeKey( 'anotherwikipages-data' );
 	}
 
 	/**
-	 * Uncached version of fetchList(). Shouldn't be used outside of fetchList().
-	 * @return array
+	 * Make an API query to determine ArticlePath of another wiki. Returns ArticlePath.
+	 * @return string
 	 */
-	public function fetchListUncached() {
-		$apiUrl = $this->options->get( 'AutoLinksToAnotherWikiApiUrl' );
-		if ( !$apiUrl ) {
-			// Not configured.
-			return [];
+	protected function fetchArticlePath() {
+		$ret = $this->sendApiQuery( [
+			'format' => 'json',
+			'formatversion' => 2,
+			'action' => 'query',
+			'meta' => 'siteinfo',
+			'siprop' => 'general'
+		] );
+		if ( !$ret ) {
+			return '';
 		}
 
+		$server = $ret['query']['general']['server'] ?? null;
+		$path = $ret['query']['general']['articlepath'] ?? null;
+		if ( !$server || !$path ) {
+			// Sanity check.
+			return '';
+		}
+
+		return wfExpandUrl( $server . $path, PROTO_HTTPS );
+	}
+
+	/**
+	 * Make an API query "what pages do you have" to another wiki.
+	 * @return string[] The list of found page names.
+	 */
+	protected function fetchList() {
 		$limit = max( 1, min( 5000, intval( $this->options->get( 'AutoLinksToAnotherWikiQueryLimit' ) ) ) );
 		$maxTitles = max( $limit, $this->options->get( 'AutoLinksToAnotherWikiMaxTitles' ) );
 
@@ -177,41 +245,33 @@ class AnotherWikiPages {
 			'format' => 'json',
 			'formatversion' => 2,
 			'action' => 'query',
-			// It's possible to make do with a shorter query (list=allpages) without the generator,
-			// but that would require 1 more HTTP query to discover the ArticlePath for the URLs.
-			'generator' => 'allpages',
-			'gaplimit' => $limit,
-			'prop' => 'info',
-			'inprop' => 'url'
+			'list' => 'allpages',
+			'aplimit' => $limit
 		];
 
 		$rows = [];
 		while ( count( $rows ) < $maxTitles ) {
-			$url = wfAppendQuery( wfExpandUrl( $apiUrl, PROTO_HTTP ), $query );
-			$req = $this->httpRequestFactory->create( $url, [], __METHOD__ );
-
-			$status = $req->execute();
-			if ( !$status->isOK() ) {
+			$result = $this->sendApiQuery( $query );
+			if ( !$result ) {
 				break;
 			}
 
-			$result = FormatJson::decode( $req->getContent(), true );
-			$newRows = $result['query']['pages'] ?? [];
+			$newRows = $result['query']['allpages'] ?? [];
 			if ( !$newRows ) {
 				break;
 			}
 			$rows = array_merge( $rows, array_slice( $newRows, 0, $maxTitles - count( $rows ) ) );
 
-			$continueToken = $result['continue']['gapcontinue'] ?? null;
+			$continueToken = $result['continue']['apcontinue'] ?? null;
 			if ( !$continueToken ) {
 				break;
 			}
-			$query['gapcontinue'] = $continueToken;
+			$query['apcontinue'] = $continueToken;
 		}
 
 		$pages = [];
 		foreach ( $rows as $row ) {
-			$pages[$row['title']] = $row['fullurl'];
+			$pages[] = $row['title'];
 		}
 
 		return $pages;
