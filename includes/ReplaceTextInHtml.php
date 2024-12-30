@@ -47,7 +47,7 @@ class ReplaceTextInHtml {
 	 * @param string|null $className If not null, process only within elements with this CSS class.
 	 * @return string Resulting HTML after replacements.
 	 */
-	public function processHtml( $html, $callback, $className = null ) {
+	public function processHtml( $html, callable $callback, $className = null ) {
 		if ( $className ) {
 			return $this->processElementsWithClass( $html, $callback, $className );
 		}
@@ -61,7 +61,7 @@ class ReplaceTextInHtml {
 	 * @param \Closure(string,ReplaceTextInHtml):string $callback
 	 * @return string
 	 */
-	protected function processFullDocument( $html, $callback ) {
+	protected function processFullDocument( $html, callable $callback ) {
 		// The purpose of markers is to prevent unwanted replacements inside new strings
 		// that we have just added. First, we replace words with markers,
 		// then we replace markers with new strings.
@@ -104,7 +104,7 @@ class ReplaceTextInHtml {
 	 * @param string $html
 	 * @return string
 	 */
-	public function removeMarkers( $html ) {
+	protected function removeMarkers( $html ) {
 		// Restore markers.
 		return str_replace( $this->markers, $this->markerValues, $html );
 	}
@@ -116,11 +116,14 @@ class ReplaceTextInHtml {
 	 * @param string|null $className
 	 * @return string
 	 */
-	protected function processElementsWithClass( $html, $callback, $className ) {
+	protected function processElementsWithClass( $html, callable $callback, $className ) {
+		$boundCallback = function ( $text ) use ( $callback ) {
+			return $this->processFullDocument( $text, $callback );
+		};
+
 		$formatter = new class ( [
-			'callback' => $callback,
-			'className' => $className,
-			'replacer' => $this
+			'callback' => $boundCallback,
+			'className' => $className
 		] ) extends HtmlFormatter {
 			/** @var callable */
 			protected $callback;
@@ -128,24 +131,19 @@ class ReplaceTextInHtml {
 			/** @var string */
 			protected $className;
 
-			/** @var ReplaceTextInHtml */
-			protected $replacer;
-
 			/** @inheritDoc */
 			public function __construct( $options = [] ) {
 				parent::__construct( $options );
 
 				$this->callback = $options['callback'];
 				$this->className = $options['className'];
-				$this->replacer = $options['replacer'];
 			}
 
 			/** @inheritDoc */
 			public function element( SerializerNode $parent, SerializerNode $node, $contents ) {
 				if ( in_array( $this->className, explode( ' ', $node->attrs['class'] ?? '' ) ) ) {
 					// Found the element that needs replacements.
-					$html = ( $this->callback )( $contents, $this->replacer );
-					$contents = $this->replacer->removeMarkers( $html );
+					$contents = ( $this->callback )( $contents );
 				}
 
 				return parent::element( $parent, $node, $contents );
