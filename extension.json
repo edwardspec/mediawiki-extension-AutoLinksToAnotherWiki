@@ -1,6 +1,6 @@
 {
 	"name": "AutoLinksToAnotherWiki",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"author": "Edward Chernenko",
 	"url": "https://www.mediawiki.org/wiki/Extension:AutoLinksToAnotherWiki",
 	"descriptionmsg": "autolinkstoanotherwiki-desc",

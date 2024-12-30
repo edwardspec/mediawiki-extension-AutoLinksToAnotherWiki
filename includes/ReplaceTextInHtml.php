@@ -23,6 +23,13 @@
 
 namespace MediaWiki\AutoLinksToAnotherWiki;
 
+use Wikimedia\RemexHtml\Serializer\HtmlFormatter;
+use Wikimedia\RemexHtml\Serializer\Serializer;
+use Wikimedia\RemexHtml\Serializer\SerializerNode;
+use Wikimedia\RemexHtml\Tokenizer\Tokenizer;
+use Wikimedia\RemexHtml\TreeBuilder\Dispatcher;
+use Wikimedia\RemexHtml\TreeBuilder\TreeBuilder;
+
 /**
  * Methods to search/replace text inside HTML without corrupting tags, etc.
  */
@@ -72,9 +79,7 @@ class ReplaceTextInHtml {
 		}
 
 		$html = $callback( $html, $this );
-
-		// Restore markers.
-		return str_replace( $this->markers, $this->markerValues, $html );
+		return $this->removeMarkers( $html );
 	}
 
 	/**
@@ -95,14 +100,64 @@ class ReplaceTextInHtml {
 	}
 
 	/**
+	 * Unencode all markers in $html, replacing them with strings that were passed to getMarker().
+	 * @param string $html
+	 * @return string
+	 */
+	public function removeMarkers( $html ) {
+		// Restore markers.
+		return str_replace( $this->markers, $this->markerValues, $html );
+	}
+
+	/**
 	 * Implementation of processHtml() that only affects elements with CSS class $className.
-	 * @param string $html @phan-unused-param
-	 * @param \Closure(string,ReplaceTextInHtml):string $callback @phan-unused-param
-	 * @param string|null $className @phan-unused-param
+	 * @param string $html
+	 * @param \Closure(string,ReplaceTextInHtml):string $callback
+	 * @param string|null $className
 	 * @return string
 	 */
 	protected function processElementsWithClass( $html, $callback, $className ) {
-		// Not yet implemented.
-		return $html;
+		$formatter = new class ( [
+			'callback' => $callback,
+			'className' => $className,
+			'replacer' => $this
+		] ) extends HtmlFormatter {
+			/** @var callable */
+			protected $callback;
+
+			/** @var string */
+			protected $className;
+
+			/** @var ReplaceTextInHtml */
+			protected $replacer;
+
+			/** @inheritDoc */
+			public function __construct( $options = [] ) {
+				parent::__construct( $options );
+
+				$this->callback = $options['callback'];
+				$this->className = $options['className'];
+				$this->replacer = $options['replacer'];
+			}
+
+			/** @inheritDoc */
+			public function element( SerializerNode $parent, SerializerNode $node, $contents ) {
+				if ( in_array( $this->className, explode( ' ', $node->attrs['class'] ?? '' ) ) ) {
+					// Found the element that needs replacements.
+					$html = ( $this->callback )( $contents, $this->replacer );
+					$contents = $this->replacer->removeMarkers( $html );
+				}
+
+				return parent::element( $parent, $node, $contents );
+			}
+		};
+
+		$serializer = new Serializer( $formatter );
+		$treeBuilder = new TreeBuilder( $serializer );
+		$dispatcher = new Dispatcher( $treeBuilder );
+		$tokenizer = new Tokenizer( $dispatcher, $html );
+		$tokenizer->execute();
+
+		return $serializer->getResult();
 	}
 }
