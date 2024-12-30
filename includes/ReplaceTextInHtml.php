@@ -37,9 +37,24 @@ class ReplaceTextInHtml {
 	 * Run $callback on parts of subject string ($html) that can't be corrupted with replacements.
 	 * @param string $html
 	 * @param \Closure(string,ReplaceTextInHtml):string $callback
+	 * @param string|null $className If not null, process only within elements with this CSS class.
 	 * @return string Resulting HTML after replacements.
 	 */
-	public function processHtml( $html, $callback ) {
+	public function processHtml( $html, $callback, $className = null ) {
+		if ( $className ) {
+			return $this->processElementsWithClass( $html, $callback, $className );
+		}
+
+		return $this->processFullDocument( $html, $callback );
+	}
+
+	/**
+	 * Implementation of processHtml() for the entire document (no need to use HTML parser).
+	 * @param string $html
+	 * @param \Closure(string,ReplaceTextInHtml):string $callback
+	 * @return string
+	 */
+	protected function processFullDocument( $html, $callback ) {
 		// The purpose of markers is to prevent unwanted replacements inside new strings
 		// that we have just added. First, we replace words with markers,
 		// then we replace markers with new strings.
@@ -79,4 +94,15 @@ class ReplaceTextInHtml {
 		return $marker;
 	}
 
+	/**
+	 * Implementation of processHtml() that only affects elements with CSS class $className.
+	 * @param string $html @phan-unused-param
+	 * @param \Closure(string,ReplaceTextInHtml):string $callback @phan-unused-param
+	 * @param string|null $className @phan-unused-param
+	 * @return string
+	 */
+	protected function processElementsWithClass( $html, $callback, $className ) {
+		// Not yet implemented.
+		return $html;
+	}
 }

@@ -50,6 +50,7 @@ class AnotherWikiPages {
 		'AutoLinksToAnotherWikiApiUrl',
 		'AutoLinksToAnotherWikiExcludeLinksTo',
 		'AutoLinksToAnotherWikiMaxTitles',
+		'AutoLinksToAnotherWikiOnlyWithinClassName',
 		'AutoLinksToAnotherWikiQueryLimit'
 	];
 
@@ -132,7 +133,9 @@ class AnotherWikiPages {
 		};
 
 		$replacer = new ReplaceTextInHtml();
-		$newHtml = $replacer->processHtml( $html, $callback );
+		$newHtml = $replacer->processHtml( $html, $callback,
+			$this->options->get( 'AutoLinksToAnotherWikiOnlyWithinClassName' )
+		);
 
 		if ( $html === $newHtml ) {
 			return false;

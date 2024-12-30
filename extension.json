@@ -49,6 +49,10 @@
 			"value": 1000,
 			"description": "Maximum number of page titles (total) to fetch from another wiki."
 		},
+		"AutoLinksToAnotherWikiOnlyWithinClassName": {
+			"value": "",
+			"description": "If not empty, replacements will only occur within HTML elements with this CSS class name."
+		},
 		"AutoLinksToAnotherWikiQueryLimit": {
 			"value": 500,
 			"description": "Maximum number of page titles to fetch with 1 API request to another wiki. (most wikis don't allow values above 500)"
