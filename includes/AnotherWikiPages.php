@@ -51,7 +51,8 @@ class AnotherWikiPages {
 		'AutoLinksToAnotherWikiExcludeLinksTo',
 		'AutoLinksToAnotherWikiMaxTitles',
 		'AutoLinksToAnotherWikiOnlyWithinClassName',
-		'AutoLinksToAnotherWikiQueryLimit'
+		'AutoLinksToAnotherWikiQueryLimit',
+		'AutoLinksToAnotherWikiMinWordsInLink'
 	];
 
 	/**
@@ -101,6 +102,15 @@ class AnotherWikiPages {
 			$this->foundPages,
 			$this->options->get( 'AutoLinksToAnotherWikiExcludeLinksTo' )
 		);
+
+		$minWords = $this->options->get( 'AutoLinksToAnotherWikiMinWordsInLink' );
+		if ( $minWords > 1 ) {
+			$foundPages = array_filter( $foundPages, static function ( $pageName ) use ( $minWords ) {
+				// This page name is too short, and configuration asks us to skip it.
+				// This setting can be used to eliminate one-word links to common terms.
+				return count( explode( ' ', $pageName ) ) >= $minWords;
+			} );
+		}
 
 		foreach ( $foundPages as $pageName ) {
 			// Canonical page names start with an uppercase letter,

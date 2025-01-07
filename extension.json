@@ -60,6 +60,10 @@
 		"AutoLinksToAnotherWikiExcludeLinksTo": {
 			"value": [],
 			"description": "Links to these pages won't be added."
+		},
+		"AutoLinksToAnotherWikiMinWordsInLink": {
+			"value": 1,
+			"description": "If the page title consists of less words than this number, the link won't be added. This setting can be used to eliminate one-word links to common terms."
 		}
 	},
 	"ServiceWiringFiles": [
